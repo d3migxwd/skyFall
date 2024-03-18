@@ -1,2 +1,3 @@
 # skyFall
-Js Web game, of solid circle falling through sky background
+Js Web game, of solid circle falling through sky background. 
+Extremely fascinating
