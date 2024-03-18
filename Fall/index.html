@@ -108,6 +108,7 @@
         document.getElementById("scoreBoard").style.display = "none";
         newScore = 0;
         level = 1;
+        nextLevel = 100;
         mainChar.style.translate = `calc(400px / 2 - 10px) 200px`;
         charY = 200;
         charX = 190;
@@ -174,10 +175,8 @@
         fallSpeed += 0.5;
         debriSpread += 3;
         level += 1;
-
-        if (!gameEnd) {
-          document.getElementById("level").innerText = level;
-        }
+        document.getElementById("level").innerText = level;
+        return;
       }
 
       function impactAnalyze(e) {
@@ -259,7 +258,6 @@
 
       //move character left and right
       window.addEventListener("keydown", (e) => {
-        console.log(e.key);
         if (e.keyCode == "39" && mainCharX <= 360 && !gameEnd) {
           charX = charX + xspeed;
           mainChar.style.translate = `${charX}px ${charY}px`;

@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="./style.css" />
+    <title>Fall - The Game</title>
+  </head>
+  <body>
+    <div id="app" class="app">
+      <div class="progress">
+        <div id="scoreDisplay" class="score">00000</div>
+        <div id="level" class="level">1</div>
+      </div>
+      <div id="sky" class="sky"></div>
+      <div id="mainChar" class="mainchar"></div>
+      <div id="mainPage" class="mainpage animate">
+        <div id="startButton" class="startBtn">Start</div>
+      </div>
+      <div id="firstBg" class="background animate bg"></div>
+      <div id="fallen" class="fell"></div>
+    </div>
+
+    <script>
+      const app = document.getElementById("app");
+      const appHeight = app.getBoundingClientRect().height;
+      const appWidth = app.getBoundingClientRect().width;
+      let background = document.querySelectorAll(".bg");
+      let debris = document.querySelectorAll(".debri");
+      const score = document.getElementById("scoreDisplay");
+      const startBtn = document.getElementById("startButton");
+      const mainChar = document.getElementById("mainChar");
+      let mainCharX = mainChar.getBoundingClientRect().x;
+      let mainCharY = mainChar.getBoundingClientRect().y;
+      const fallen = document.getElementById("fallen");
+      const fallenY = fallen.getBoundingClientRect().y;
+      const sky = document.getElementById("sky");
+      const skyY = sky.getBoundingClientRect().y;
+      const firstBg = document.getElementById("firstBg");
+      let firstbgY = firstBg.getBoundingClientRect().y;
+      let newScore = 0;
+      let scoreIn = 0.1;
+      let charY = 200;
+      let charX = 190;
+      let fallSpeed = 0.5;
+      let debriSpeed = 1.5;
+      const bgArr = [
+        [0, 0],
+        [0, 0],
+      ];
+      const debriArr = [
+        "debri",
+        "debri",
+        "debri",
+        "debri",
+        "debri",
+        "debri",
+        "debri",
+        "debri",
+      ];
+      const debriCount = debriArr.length;
+      let debriSelected = 0;
+      let debriLimit = 5;
+      let debriPosX = 0;
+      let debrisY = [];
+      let xspeed = 5;
+      let debriRelease = 1000;
+      let cloudImpact = false;
+      let nextLevel = 200;
+      let fly = 0;
+      let level = 1;
+      let debriInterval;
+      let gameEnd = false;
+
+      function createClouds() {
+        const newCloud = document.createElement("div");
+        newCloud.className = "bg newBg";
+        app.appendChild(newCloud);
+        background = document.querySelectorAll(".bg");
+        bgArr[0][0] = 0;
+        bgArr[0][1] = background[0].getBoundingClientRect().y;
+        bgArr[1][0] = 0;
+        bgArr[1][1] = background[1].getBoundingClientRect().y;
+      }
+
+      function bgSlide(el, key, arr, x, speed) {
+        el.style.translate = `${x}px ${(arr[key][1] -= speed)}px`;
+      }
+
+      function elSlide(el, key, arr, x, speed) {
+        if (debris.length > 0 && el.getBoundingClientRect().y >= -20) {
+          el.style.translate = `${x}px ${(arr[key][1] -= speed)}px`;
+        }
+      }
+
+      function next() {
+        nextLevel += 200;
+        debriSpeed += 0.3;
+        level += 1;
+        debrisY = [];
+
+        debris.forEach((e) => {
+          e.remove();
+        });
+        document.getElementById("level").innerText = level;
+        return;
+      }
+
+      function debriCreator(dtype, x) {
+        const newDebri = document.createElement("div");
+        newDebri.className = `debri ${dtype}`;
+        newDebri.style.translate = `${x}px 705px`;
+        app.appendChild(newDebri);
+        debrisY.push([x, 705]);
+        debris = document.querySelectorAll(".debri");
+      }
+      function createDebri() {
+        debri = Math.round(Math.random() * debriCount);
+        debriPosX = Math.round(Math.random() * (appWidth - 30));
+        if (debri >= 1 && debri <= 8) {
+          debriCreator("harm", debriPosX);
+        }
+      }
+      function impactAnalyze(e) {
+        if (e.classList.contains("cloud") && charY >= 200) {
+          cloudImpact = true;
+          fly = 50;
+          console.log(mainChar.getBoundingClientRect().y);
+        }
+        if (e.classList.contains("harm")) {
+          gameEnd = true;
+        }
+        if (e.classList.contains("coin")) {
+        }
+        e.style.opacity = "0";
+      }
+
+      function gameStart() {
+        const fallInterval = setInterval(() => {
+          if (document.querySelectorAll(".bg").length < 2) {
+            createClouds();
+          }
+
+          debrisY.forEach((e, k) => {
+            debris[k].style.translate = `${e[0]}px ${(e[1] -= debriSpeed)}px`;
+          });
+
+          //game End
+          if (gameEnd) {
+            gameEnd = true;
+            clearInterval(fallInterval);
+            console.log(debris, debrisY);
+          }
+
+          //Game running score
+          newScore = newScore + scoreIn;
+          if (String(Math.round(newScore)).length < 5) {
+            score.innerText =
+              "0".repeat(5 - String(Math.round(newScore)).length) +
+              Math.round(newScore);
+          } else {
+            score.innerText = Math.round(newScore);
+          }
+
+          //background slide up
+          if (
+            background[0] &&
+            background[0].getBoundingClientRect().y >= -(appHeight + 40)
+          ) {
+            bgSlide(background[0], 0, bgArr, 0, fallSpeed);
+          } else {
+            //delete first child
+            app.removeChild(background[0]);
+            createClouds();
+          }
+
+          if (
+            background[1] &&
+            background[1].getBoundingClientRect().y >= -(appHeight + 40)
+          ) {
+            bgSlide(background[1], 1, bgArr, 0, fallSpeed);
+          }
+
+          //remove debris
+
+          //slide Debris
+          debris.forEach((e, k) => {
+            if (
+              mainChar.getBoundingClientRect().y >=
+                e.getBoundingClientRect().y - e.getBoundingClientRect().width &&
+              mainChar.getBoundingClientRect().y <=
+                e.getBoundingClientRect().y + e.getBoundingClientRect().width
+            ) {
+              if (
+                mainChar.getBoundingClientRect().x >=
+                  e.getBoundingClientRect().x -
+                    e.getBoundingClientRect().width &&
+                mainChar.getBoundingClientRect().x <=
+                  e.getBoundingClientRect().x + e.getBoundingClientRect().width
+              ) {
+                impactAnalyze(e);
+              }
+            }
+          });
+        }, 1);
+      }
+
+      function debri() {
+        debriInterval = setInterval(() => {
+          if (!gameEnd && newScore < nextLevel) {
+            createDebri();
+            //console.log(debriSelected);
+          } else {
+            next();
+          }
+        }, 1000);
+      }
+
+      //move character left and right
+      window.addEventListener("keydown", (e) => {
+        if (!gameEnd) {
+          if (e.keyCode == "39" && mainCharX <= 360) {
+            charX = charX + xspeed;
+            mainChar.style.translate = `${charX}px ${charY}px`;
+            mainCharX = mainChar.getBoundingClientRect().x;
+          }
+          if (e.keyCode == "37" && mainCharX >= 20) {
+            charX = charX - xspeed;
+            mainChar.style.translate = `${charX}px ${charY}px`;
+            mainCharX = mainChar.getBoundingClientRect().x;
+          }
+        }
+      });
+
+      startBtn.addEventListener("click", () => {
+        startBtn.style.display = "none";
+        gameStart();
+        debri();
+      });
+    </script>
+  </body>
+</html>
