@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="./style.css" />
+    <title>Fall - The Game</title>
+  </head>
+  <body>
+    <div id="app" class="app">
+      <div class="progress">
+        <div id="scoreDisplay" class="score">00000</div>
+        <div id="level" class="level">1</div>
+      </div>
+      <div id="mainChar" class="mainchar"></div>
+      <div id="mainPage" class="mainpage animate">
+        <div id="startButton" class="startBtn">Start</div>
+      </div>
+      <div id="firstBg" class="background animate bg"></div>
+      <div
+        id="scoreBoard"
+        style="
+          display: none;
+          background-color: #fff;
+          border: solid 1px #000;
+          margin: calc(50%) auto;
+          height: 200px;
+          width: 300px;
+          position: relative;
+          z-index: 9999;
+          text-align: center;
+          padding: 10px;
+        "
+      >
+        <h3>Game Over</h3>
+        <ul style="list-style-type: none">
+          <li style="display: inline-block; width: 80px">Score</li>
+          <li style="display: inline-block" id="scoreValue">---</li>
+        </ul>
+
+        <ul style="list-style-type: none">
+          <li style="display: inline-block; width: 80px">Level</li>
+          <li style="display: inline-block" id="levelValue">---</li>
+        </ul>
+        <p>Press R to restart</p>
+        <p>Press Q to quit</p>
+      </div>
+    </div>
+
+    <p>Press 'P' to pause or play game</p>
+    <p>Press 'R' to restart game</p>
+    <p>Press 'Q' to quit game</p>
+
+    <script>
+      const app = document.getElementById("app");
+      const appHeight = app.getBoundingClientRect().height;
+      const appWidth = app.getBoundingClientRect().width;
+      let background = document.querySelectorAll(".bg");
+      let debris = document.querySelectorAll(".debri");
+      const score = document.getElementById("scoreDisplay");
+      const startBtn = document.getElementById("startButton");
+      const mainChar = document.getElementById("mainChar");
+      let mainCharX = mainChar.getBoundingClientRect().x;
+      let mainCharY = mainChar.getBoundingClientRect().y;
+      const firstBg = document.getElementById("firstBg");
+      let firstbgY = firstBg.getBoundingClientRect().y;
+      let newScore = 0;
+      let scoreIn = 0.1;
+      let charY = 200;
+      let charX = 190;
+      let fallSpeed = 2;
+      let debriSpeed = 5;
+      let bgArr = [
+        [0, 0],
+        [0, 0],
+      ];
+      const debriArr = [
+        "debri",
+        "debri",
+        "debri",
+        "debri",
+        "debri",
+        "debri",
+        "debri",
+        "debri",
+      ];
+      const debriCount = debriArr.length;
+      let debriSelected = 0;
+      let debriLimit = 8;
+      //let debriPosX = 0;
+      let debrisY = [];
+      let xspeed = 5;
+      let debriRelease = 500;
+      let cloudImpact = false;
+      let nextLevel = 100;
+      let fly = 0;
+      let level = 1;
+      let debriInterval;
+      let fallInterval;
+      let gamePause = false;
+      let gameRestart = false;
+      let gameEnd = false;
+      let debriSpread = 10;
+
+      function restart() {
+        document.getElementById("scoreDisplay").innerText = "00000";
+        document.getElementById("level").innerText = 1;
+        document.getElementById("scoreBoard").style.display = "none";
+        newScore = 0;
+        level = 1;
+        mainChar.style.translate = `calc(400px / 2 - 10px) 200px`;
+        charY = 200;
+        charX = 190;
+        debriSpread = 10;
+        background.forEach((e) => {
+          e.remove();
+        });
+        bgArr = [
+          [0, 0],
+          [0, 0],
+        ];
+        const firstBg = document.createElement("div");
+        firstBg.id = "firstBg";
+        firstBg.className = "background bg";
+        app.appendChild(firstBg);
+        background = document.querySelectorAll(".bg");
+        gameRestart = false;
+        if (document.querySelectorAll(".bg").length < 2) {
+          createClouds();
+        }
+        gameEnd = false;
+        gamePause = false;
+        gameStart();
+      }
+      function createClouds() {
+        const newCloud = document.createElement("div");
+        newCloud.className = "bg newBg";
+
+        for (let i = 0; i < debriSpread; i++) {
+          let debriPosX =
+            Math.round(Math.random() * (appWidth - 30)) >= 0 &&
+            Math.round(Math.random() * (appWidth - 30)) <= 30
+              ? 30
+              : Math.round(Math.random() * (appWidth - 30));
+
+          let debriPosY =
+            Math.round(Math.random() * (appHeight - 30)) >= 0 &&
+            Math.round(Math.random() * (appHeight - 30)) <= 30
+              ? 100
+              : Math.round(Math.random() * (appHeight - 30));
+
+          const newDebri = document.createElement("div");
+          newDebri.className = "debri harm";
+          newDebri.style.translate = `${debriPosX}px ${debriPosY}px`;
+          newCloud.appendChild(newDebri);
+        }
+        app.appendChild(newCloud);
+        background = document.querySelectorAll(".bg");
+        bgArr[0][0] = 0;
+        bgArr[0][1] = background[0].getBoundingClientRect().y;
+        bgArr[1][0] = 0;
+        bgArr[1][1] = background[1].getBoundingClientRect().y;
+        debris = document.querySelectorAll(".debri");
+      }
+
+      function bgSlide(el, key, arr, x, speed) {
+        if (!gamePause) {
+          el.style.translate = `${x}px ${(arr[key][1] -= speed)}px`;
+        }
+      }
+
+      function next() {
+        nextLevel += 100;
+        fallSpeed += 0.5;
+        debriSpread += 3;
+        level += 1;
+
+        if (!gameEnd) {
+          document.getElementById("level").innerText = level;
+        }
+      }
+
+      function impactAnalyze(e) {
+        if (e.classList.contains("harm")) {
+          gameEnd = true;
+        }
+      }
+
+      function gameStart() {
+        fallInterval = setInterval(() => {
+          if (newScore >= nextLevel && nextLevel <= newScore + 20) {
+            next();
+          }
+
+          //game End
+          if (gameEnd) {
+            document.getElementById("scoreBoard").style.display = "block";
+            document.getElementById("scoreValue").innerText = score.innerText;
+            document.getElementById("levelValue").innerText = level;
+            clearInterval(fallInterval);
+          }
+
+          //Game running score
+          if (!gamePause) {
+            newScore = newScore + scoreIn;
+            if (String(Math.round(newScore)).length < 5) {
+              score.innerText =
+                "0".repeat(5 - String(Math.round(newScore)).length) +
+                Math.round(newScore);
+            } else {
+              score.innerText = Math.round(newScore);
+            }
+          }
+          //background slide up
+          if (
+            background[0] &&
+            background[0].getBoundingClientRect().y >= -(appHeight + 50)
+          ) {
+            bgSlide(background[0], 0, bgArr, 0, fallSpeed);
+          } else {
+            //delete first child
+            app.removeChild(background[0]);
+            createClouds();
+          }
+
+          if (
+            background[1] &&
+            background[1].getBoundingClientRect().y >= -(appHeight + 40)
+          ) {
+            bgSlide(background[1], 1, bgArr, 0, fallSpeed);
+          }
+
+          //remove debris
+          debris.forEach((e, k) => {
+            if (
+              mainChar.getBoundingClientRect().top >=
+                e.getBoundingClientRect().top -
+                  e.getBoundingClientRect().width &&
+              mainChar.getBoundingClientRect().top <=
+                e.getBoundingClientRect().top + e.getBoundingClientRect().width
+            ) {
+              if (
+                mainChar.getBoundingClientRect().left >=
+                  e.getBoundingClientRect().left -
+                    e.getBoundingClientRect().width &&
+                mainChar.getBoundingClientRect().left <=
+                  e.getBoundingClientRect().left +
+                    e.getBoundingClientRect().width
+              ) {
+                impactAnalyze(e);
+              }
+            }
+          });
+        }, 10);
+        if (gameRestart) {
+          return;
+        }
+      }
+
+      //move character left and right
+      window.addEventListener("keydown", (e) => {
+        console.log(e.key);
+        if (e.keyCode == "39" && mainCharX <= 360 && !gameEnd) {
+          charX = charX + xspeed;
+          mainChar.style.translate = `${charX}px ${charY}px`;
+          mainCharX = mainChar.getBoundingClientRect().x;
+        }
+        if (e.keyCode == "37" && mainCharX >= 20 && !gameEnd) {
+          charX = charX - xspeed;
+          mainChar.style.translate = `${charX}px ${charY}px`;
+          mainCharX = mainChar.getBoundingClientRect().x;
+        }
+        if (e.keyCode == "80" && !gameEnd) {
+          gamePause = !gamePause ? true : false;
+        }
+        if (e.keyCode == "82") {
+          gameRestart = true;
+          clearInterval(fallInterval);
+          restart();
+          //window.location.reload();
+        }
+        if (e.keyCode == "81") {
+          window.location.reload();
+        }
+      });
+
+      document.querySelector(".startBtn").addEventListener("click", () => {
+        startBtn.style.display = "none";
+        if (document.querySelectorAll(".bg").length < 2) {
+          createClouds();
+        }
+        gameStart();
+      });
+    </script>
+  </body>
+</html>
